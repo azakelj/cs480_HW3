@@ -1,0 +1,72 @@
+load("allcancers.RData")
+#install.packages("scatterplot3d")
+library(scatterplot3d)
+
+#all ICD9 codes below 9999
+ICD_9 <- cancer$ICD9[cancer$ICD9 <  9999]
+surv9 <- cancer$surv[cancer$ICD9 <  9999]
+race9 <- cancer$race[cancer$ICD9 <  9999]
+agedx9 <- cancer$agedx[cancer$ICD9 <  9999]
+casenum9 <- cancer$casenum[cancer$ICD9 <  9999]
+
+a1 <- aggregate(surv9 ~ ICD_9+ race9, data = cancer, mean)
+names(a1) <- c("ICD_9", "race9", "surv9");a1
+a2 <- aggregate(casenum9 ~ ICD_9+ race9, data = cancer, length)
+names(a2) <- c("ICD_9", "race9", "Cases9");a2
+a3 <- aggregate(agedx9 ~ ICD_9+ race9, data = cancer, mean)
+names(a3) <- c("ICD_9", "race9", "agedx9");a3
+
+#combined into new table
+canceralter <- merge(a1, a2 , by=c("ICD_9","race9"))
+canceralter <- merge(canceralter, a3, by=c("ICD_9","race9"))
+canceralter;
+
+#from the new table, all surv below 1000
+surv4 <- canceralter$surv9[canceralter$surv9 < 1000]
+ICD_4 <- canceralter$ICD_9[canceralter$surv9 < 1000]
+race4 <- canceralter$race9[canceralter$surv9 < 1000]
+agedx4 <- canceralter$agedx9[canceralter$surv9 < 1000]
+casenum4 <- canceralter$Cases9[canceralter$surv9 < 1000]
+
+
+b1 <- aggregate(surv4 ~ ICD_4+ race4, data = canceralter, mean)
+names(b1) <- c("ICD_4", "race4", "surv4");b1
+b2 <- aggregate(casenum4 ~ ICD_4+ race4, data = canceralter, length)
+names(b2) <- c("ICD_4", "race4", "Cases4");b2
+b3 <- aggregate(agedx4 ~ ICD_4+ race4, data = canceralter, mean)
+names(b3) <- c("ICD_4", "race4", "agedx4");b3
+
+#merged into one final table
+cancerfinal <- merge(b1, b2 , by=c("ICD_4","race4"))
+cancerfinal <- merge(cancerfinal, b3, by=c("ICD_4","race4"))
+cancerfinal;
+
+# create column indicating point color
+cancerfinal$pcolor[cancerfinal$race4=="black"] <- "red"
+cancerfinal$pcolor[cancerfinal$race4=="white"] <- "dark green"
+cancerfinal$pcolor[cancerfinal$race4=="other"] <- "purple"
+
+#scatterplot3D (x,y,z)
+with(cancerfinal, {
+  scatterplot3d(surv4, ICD_4, agedx4,
+                ylim = c(1000, 3000),
+                color = pcolor, pch=19,# filled circles 
+             #   type="h",  # lines to the horizontal plane
+                xlab = "Survival",
+                ylab = "ICD 9 Code",
+                zlab = "Age Diagnosed",
+                main="3-D Scatterplot")
+})
+
+#MetricsGraphics
+#install.packages("metricsgraphics")
+library(metricsgraphics)
+  mjs_plot(cancerfinal, x=ICD_4, y=surv4) %>% #code continues
+  #Adds a point/scatterplot geom
+  #The linear fit that matches the pattern of a set of paired data as closely as possible.
+  #Out of all possible linear fits, the least-squares regression line is the one that has 
+  #the smallest possible value for the sum of the squares of the residuals.
+  mjs_point(least_squares=TRUE) %>%
+  #Creates Labels for x and y axes
+  mjs_labs(x="ICD 9 Code", y="Survival")
+ 
